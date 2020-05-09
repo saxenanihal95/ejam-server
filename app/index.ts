@@ -19,8 +19,20 @@ db.once("open", function () {
 });
 
 app.get("/", function (req, res) {
-  res.send("Hello World!");
+  res.send("Server Started");
 });
+
+app
+  .route("/deployment")
+  .get(function (req, res) {
+    res.send("Get deployement");
+  })
+  .post(function (req, res) {
+    res.send("Add deployment");
+  })
+  .delete(function (req, res) {
+    res.send("Delete deployment");
+  });
 
 app.listen(3000, function () {
   console.log("Example app listening on port 3000!");
