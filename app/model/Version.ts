@@ -1,0 +1,18 @@
+var mongoose = require("mongoose");
+
+export interface IVersion extends mongoose.Document {
+  name: String;
+}
+
+var versionSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    unique: true,
+    required: true,
+    dropDups: true,
+  },
+});
+
+var Version = mongoose.model<IVersion>("Version", versionSchema);
+
+export default Version;
