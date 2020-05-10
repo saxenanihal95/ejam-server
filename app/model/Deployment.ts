@@ -1,6 +1,5 @@
+import mongoose from "mongoose";
 import { IVersion } from "./Version";
-
-var mongoose = require("mongoose");
 
 export interface IDeployment extends mongoose.Document {
   url: String;

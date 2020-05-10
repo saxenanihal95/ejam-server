@@ -39,9 +39,11 @@ db.once("open", function () {
   console.log("connected");
 });
 
-const versionList = data.flatMap(({ versions }) => versions);
+const versionList = data.flatMap(
+  ({ versions }: { versions: Array<String> }) => versions
+);
 const versionIds: { [key: string]: number } = {};
-let versionPromise = versionList.map(async (name) => {
+let versionPromise = versionList.map(async (name: String) => {
   try {
     let newVersion = new Version({ name });
     const value = await newVersion.save();

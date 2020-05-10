@@ -1,4 +1,4 @@
-var mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 export interface IVersion extends mongoose.Document {
   name: String;
