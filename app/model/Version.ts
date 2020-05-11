@@ -11,6 +11,7 @@ var versionSchema = new mongoose.Schema({
     required: true,
     dropDups: true,
   },
+  url: String,
 });
 
 var Version = mongoose.model<IVersion>("Version", versionSchema);

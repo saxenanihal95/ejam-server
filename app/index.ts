@@ -26,6 +26,8 @@ const data: Array<{ name: String; versions: Array<String> }> = [
 // Create a new express application instance
 const app: express.Application = express();
 
+app.use(express.json());
+
 const username = process.env.MONGO_DB_USER_NAME;
 const password = process.env.MONGO_DB_PASSWORD;
 
@@ -56,12 +58,16 @@ let versionPromise = versionList.map(async (name: String) => {
 
 Promise.all(versionPromise)
   .then(async (v) => {
-    v.map(({ _id, name }) => (versionIds[name] = _id));
-    await Deployment.remove({});
+    v.filter((obj) => obj).map(({ _id, name }) => (versionIds[name] = _id));
     data.map(async ({ versions, name: templateName }) => {
-      let deployement = new Deployment({ templateName });
-      versions.map((v) => deployement.versions.push(versionIds[v]));
-      await deployement.save();
+      try {
+        const existingDeployment = await Deployment.findOne({ templateName });
+        if (!existingDeployment) {
+          let deployment = new Deployment({ templateName });
+          versions.map((v) => deployment.versions.push(versionIds[v]));
+          await deployment.save();
+        }
+      } catch (e) {}
     });
   })
   .catch((e) => console.log(e));
@@ -75,24 +81,78 @@ app
   .get(function (req, res) {
     Deployment.find({})
       .populate("versions")
-      .exec(function (err: Error, deployements: IDeployment) {
-        return res.send(JSON.parse(JSON.stringify(deployements)));
+      .exec(function (err: Error, deployments: IDeployment) {
+        return res.send(JSON.parse(JSON.stringify(deployments)));
       });
   })
   .post(async function (req, res) {
     try {
       const version = req.body.version;
-      const templateName = req.body.templateName;
-      const url = req.body.version;
-      let deployement = new Deployment({ url, templateName });
-      deployement.versions.push(version);
-      await deployement.save();
+      const id = req.body.deploymentId;
+      const url = req.body.url;
+      const existingVersion = await Version.findOne({ name: version });
+      let deployment = await Deployment.findById(id);
+
+      if (!deployment) {
+        res.status(400).send({ message: "Deployment template not found" });
+      }
+
+      const isVersionExists = deployment?.versions.find((id) =>
+        id.equals(existingVersion?._id)
+      );
+
+      if (isVersionExists) {
+        res.status(400).send({ message: "version already exists" });
+      }
+
+      if (existingVersion?._id) {
+        deployment?.versions.push(existingVersion?._id);
+        await deployment?.save();
+        res.status(200).send({ message: "Deployment added succesfully." });
+      }
+
+      const newVersion = await new Version({
+        name: version,
+        ...(url && { url }),
+      }).save();
+
+      deployment?.versions.push(newVersion?._id);
+
+      await deployment?.save();
+
+      res.status(200).send({ message: "Deployment added succesfully." });
     } catch (e) {
-      console.log(e);
+      res.status(500).send({ message: "Something went wrong." });
     }
   })
-  .delete(function (req, res) {
-    res.send("Delete deployment");
+  .put(async function (req, res) {
+    try {
+      const removeVersionId = req.body.versionId;
+      const deployementVersionId = req.body.deploymentId;
+      let deployment = await Deployment.findById(deployementVersionId);
+
+      if (!deployment) {
+        res.status(400).send({ message: "Deployment template not found" });
+      }
+
+      const isVersionExists = deployment?.versions.find((id) =>
+        id.equals(removeVersionId)
+      );
+
+      if (!isVersionExists) {
+        res.status(400).send({ message: "version doesn't on given template" });
+      }
+
+      await Deployment.updateOne(
+        { _id: deployementVersionId },
+        { $pullAll: { versions: [removeVersionId] } }
+      );
+
+      res.status(200).send({ message: "Verison removed succesfully." });
+    } catch (e) {
+      console.log(e);
+      res.status(500).send({ message: "Something went wrong." });
+    }
   });
 
 app.listen(8000, function () {

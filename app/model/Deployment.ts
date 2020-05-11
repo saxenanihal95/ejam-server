@@ -14,7 +14,6 @@ export interface IDeployment extends mongoose.Document {
 }
 
 var deploymentSchema = new mongoose.Schema({
-  url: String,
   templateName: {
     type: String,
     unique: true,
